@@ -47,6 +47,8 @@ vmCvar_t  g_timelimit;
 vmCvar_t  g_suddenDeathTime;
 vmCvar_t  g_suddenDeath;
 vmCvar_t  g_suddenDeathMode;
+vmCvar_t  g_extremeSuddenDeath;
+vmCvar_t  g_extremeSuddenDeathTime;
 vmCvar_t  g_capturelimit;
 vmCvar_t  g_friendlyFire;
 vmCvar_t  g_friendlyFireAliens;
@@ -87,6 +89,8 @@ vmCvar_t  g_requireVoteReasons;
 vmCvar_t  g_voteLimit;
 vmCvar_t  g_suddenDeathVotePercent;
 vmCvar_t  g_suddenDeathVoteDelay;
+vmCvar_t  g_extremeSuddenDeathVotePercent;
+vmCvar_t  g_extremeSuddenDeathVoteDelay;
 vmCvar_t  g_mapVotesPercent;
 vmCvar_t  g_designateVotes;
 vmCvar_t  g_teamAutoJoin;
@@ -216,6 +220,8 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_suddenDeathTime, "g_suddenDeathTime", "20", CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_NORESTART, 0, qtrue },
   { &g_suddenDeathMode, "g_suddenDeathMode", "2", CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_NORESTART, 0, qtrue },
   { &g_suddenDeath, "g_suddenDeath", "0", CVAR_SERVERINFO | CVAR_NORESTART, 0, qtrue },
+  { &g_extremeSuddenDeathTime, "g_extremeSuddenDeathTime", "60", CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_NORESTART, 0, qtrue },
+  { &g_extremeSuddenDeath, "g_extremeSuddenDeath", "0", CVAR_SERVERINFO | CVAR_NORESTART, 0, qfalse },
 
   { &g_synchronousClients, "g_synchronousClients", "0", CVAR_SYSTEMINFO, 0, qfalse  },
 
@@ -268,7 +274,9 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_voteMinTime, "g_voteMinTime", "120", CVAR_ARCHIVE, 0, qfalse },
   { &g_mapvoteMaxTime, "g_mapvoteMaxTime", "240", CVAR_ARCHIVE, 0, qfalse },
   { &g_suddenDeathVotePercent, "g_suddenDeathVotePercent", "74", CVAR_ARCHIVE, 0, qfalse },
+  { &g_extremeSuddenDeathVotePercent, "g_extremeSuddenDeathVotePercent", "74", CVAR_ARCHIVE, 0, qfalse },
   { &g_suddenDeathVoteDelay, "g_suddenDeathVoteDelay", "180", CVAR_ARCHIVE, 0, qfalse },
+  { &g_extremeSuddenDeathVoteDelay, "g_extremeSuddenDeathVoteDelay", "60", CVAR_ARCHIVE, 0, qfalse },
   { &g_mapVotesPercent, "g_mapVotesPercent", "75", CVAR_ARCHIVE, 0, qfalse },
   { &g_designateVotes, "g_designateVotes", "1", CVAR_ARCHIVE, 0, qfalse },
   
@@ -763,7 +771,9 @@ void G_InitGame( int levelTime, int randomSeed, int restart )
   trap_Cvar_Set( "g_alienKills", 0 );
   trap_Cvar_Set( "g_humanKills", 0 );
   trap_Cvar_Set( "g_suddenDeath", 0 );
+  trap_Cvar_Set( "g_extremeSuddenDeath", 0 );
   level.suddenDeathBeginTime = g_suddenDeathTime.integer * 60000;
+  level.extremeSuddenDeathBeginTime = g_extremeSuddenDeathTime.integer * 60000;
 
   G_Printf( "-----------------------------------\n" );
 
@@ -1205,6 +1215,19 @@ void G_CountSpawns( void )
 
 /*
 ============
+G_TimeTilExtremeSuddenDeath
+============
+*/
+int G_TimeTilExtremeSuddenDeath( void )
+{
+  if( (!g_extremeSuddenDeathTime.integer && level.extremeSuddenDeathBeginTime == 0 ) || level.extremeSuddenDeathBeginTime < 0 )
+    return 999999999; // Always some time away
+
+  return ( ( level.extremeSuddenDeathBeginTime ) - ( level.time - level.startTime ) );
+}
+
+/*
+============
 G_TimeTilSuddenDeath
 ============
 */
@@ -1250,6 +1273,43 @@ void G_CalculateBuildPoints( void )
   }
   if((( level.time - level.startTime ) % 900000) == 0)
   trap_SendServerCommand( -1, "cp \"^9Our forum will be ready soon. Stay tuned\n\"" );
+
+  if(!level.extremeSuddenDeath)
+    {
+      if(g_extremeSuddenDeath.integer || G_TimeTilExtremeSuddenDeath( ) <= 0 ) //Conditions to enter ESD
+      {
+        //begin extreme sudden death
+        if( level.extremeSuddenDeathWarning < TW_PASSED )
+        {
+          trap_SendServerCommand( -1, "cp \"Extreme Sudden Death!\"" );
+          G_LogPrintf("Beginning Extreme Sudden Death\n");
+          localHTP = 0;
+          localATP = 0;
+
+          level.extremeSuddenDeathBeginTime = level.time;
+          level.extremeSuddenDeath=qtrue;
+          trap_Cvar_Set( "g_extremeSuddenDeath", "1" );
+
+          level.extremeSuddenDeathWarning = TW_PASSED;
+
+          trap_SendConsoleCommand( EXEC_NOW, "alienWin\n" );
+          trap_SendConsoleCommand( EXEC_NOW, "humanWin\n" );
+          for( i = 0; i < MAX_CLIENTS; i++ )
+        	  level.clients[i].ps.persistant[PERS_CREDIT] = 2000;
+        }
+      }
+      else
+      {
+         //warn about extreme sudden death
+         if( ( G_TimeTilExtremeSuddenDeath( ) <= 60000 ) &&
+             (  level.extremeSuddenDeathWarning < TW_IMMINENT ) )
+         {
+           trap_SendServerCommand( -1, va("cp \"Extreme Sudden Death in %d seconds!\"",
+                 (int)(G_TimeTilExtremeSuddenDeath() / 1000 ) ) );
+           level.extremeSuddenDeathWarning = TW_IMMINENT;
+         }
+      }
+    }
 
   if(!level.suddenDeath)
   {
@@ -1304,7 +1364,12 @@ void G_CalculateBuildPoints( void )
   }
   
   //set BP at each cycle
-  if( g_suddenDeath.integer )
+  if( g_extremeSuddenDeath.integer )
+  {
+      localHTP = 0;
+      localATP = 0;
+  }
+  else if( g_suddenDeath.integer )
   {
     localHTP = level.suddenDeathHBuildPoints;
     localATP = level.suddenDeathABuildPoints;
@@ -1982,7 +2047,7 @@ void G_SendGameStat( pTeam_t team )
   }
 
   Com_sprintf( data, BIG_INFO_STRING,
-      "%s %s T:%c A:%f H:%f M:%s D:%d SD:%d AS:%d AS2T:%d AS3T:%d HS:%d HS2T:%d HS3T:%d CL:%d",
+      "%s %s T:%c A:%f H:%f M:%s D:%d SD:%d ESD:%d AS:%d AS2T:%d AS3T:%d HS:%d HS2T:%d HS3T:%d CL:%d",
       Q3_VERSION,
       g_tag.string,
       teamChar,
@@ -1991,6 +2056,7 @@ void G_SendGameStat( pTeam_t team )
       map,
       level.time - level.startTime,
       G_TimeTilSuddenDeath( ),
+      G_TimeTilExtremeSuddenDeath( ),
       g_alienStage.integer,
       level.alienStage2Time - level.startTime,
       level.alienStage3Time - level.startTime,
@@ -2385,6 +2451,16 @@ void CheckVote( void )
       if( g_suddenDeathVoteDelay.integer )
         trap_SendServerCommand( -1, va("cp \"Sudden Death will begin in %d seconds\n\"", g_suddenDeathVoteDelay.integer  ) );
     }
+
+    if( !Q_stricmp( level.voteString, "extremesuddendeath" ) )
+	{
+	  level.extremeSuddenDeathBeginTime = level.time + ( 1000 * g_extremeSuddenDeathVoteDelay.integer ) - level.startTime;
+
+	  level.voteString[0] = '\0';
+
+	  if( g_extremeSuddenDeathVoteDelay.integer )
+		trap_SendServerCommand( -1, va("cp \"Extreme Sudden Death will begin in %d seconds\n\"", g_extremeSuddenDeathVoteDelay.integer  ) );
+	}
 
     if( level.voteString[0] )
       trap_SendConsoleCommand( EXEC_APPEND, va( "%s\n", level.voteString ) );

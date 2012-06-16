@@ -737,6 +737,9 @@ typedef struct
   qboolean          suddenDeath;
   int               suddenDeathBeginTime;
   timeWarning_t     suddenDeathWarning;
+  qboolean          extremeSuddenDeath;
+  int               extremeSuddenDeathBeginTime;
+  timeWarning_t     extremeSuddenDeathWarning;
   timeWarning_t     timelimitWarning;
 
   spawnQueue_t      alienSpawnQueue;
@@ -1090,6 +1093,7 @@ void CheckVote( void );
 void CheckTeamVote( int teamnum );
 void LogExit( const char *string );
 int  G_TimeTilSuddenDeath( void );
+int  G_TimeTilExtremeSuddenDeath( void );
 void CheckMsgTimer( void );
 qboolean G_Flood_Limited( gentity_t *ent );
 
@@ -1253,6 +1257,8 @@ extern  vmCvar_t  g_timelimit;
 extern  vmCvar_t  g_suddenDeathTime;
 extern  vmCvar_t  g_suddenDeath;
 extern  vmCvar_t  g_suddenDeathMode;
+extern  vmCvar_t  g_extremeSuddenDeathTime;
+extern  vmCvar_t  g_extremeSuddenDeath;
 extern  vmCvar_t  g_friendlyFire;
 extern  vmCvar_t  g_friendlyFireHumans;
 extern  vmCvar_t  g_friendlyFireAliens;
@@ -1282,6 +1288,8 @@ extern  vmCvar_t  g_requireVoteReasons;
 extern  vmCvar_t  g_voteLimit;
 extern  vmCvar_t  g_suddenDeathVotePercent;
 extern  vmCvar_t  g_suddenDeathVoteDelay;
+extern  vmCvar_t  g_extremeSuddenDeathVotePercent;
+extern  vmCvar_t  g_extremeSuddenDeathVoteDelay;
 extern  vmCvar_t  g_mapVotesPercent;
 extern  vmCvar_t  g_designateVotes;
 extern  vmCvar_t  g_teamAutoJoin;

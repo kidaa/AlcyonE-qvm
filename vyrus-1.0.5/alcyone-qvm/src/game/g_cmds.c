@@ -1716,42 +1716,83 @@ void Cmd_CallVote_f( gentity_t *ent )
       Com_sprintf( level.voteString, sizeof( level.voteString ), nullstring);
       Com_sprintf( level.voteDisplayString,
           sizeof( level.voteDisplayString ), "[Poll] \'%s\'", arg2plus );
-   }
-   else if( !Q_stricmp( arg1, "sudden_death" ) ||
-     !Q_stricmp( arg1, "suddendeath" ) )
-   {
-     if(!g_suddenDeathVotePercent.integer)
-     {
-       trap_SendServerCommand( ent-g_entities, "print \"Sudden Death votes have been disabled\n\"" );
-       return;
-     } 
-     else if( g_suddenDeath.integer ) 
-     {
-      trap_SendServerCommand( ent - g_entities, va( "print \"callvote: Sudden Death has already begun\n\"") );
-      return;
-     }
-     else if( G_TimeTilSuddenDeath() <= g_suddenDeathVoteDelay.integer * 1000 )
-     {
-      trap_SendServerCommand( ent - g_entities, va( "print \"callvote: Sudden Death is already immenent\n\"") );
-      return;
-     }
-    else 
-     {
-       level.votePassThreshold = g_suddenDeathVotePercent.integer;
-       Com_sprintf( level.voteString, sizeof( level.voteString ), "suddendeath" );
-       Com_sprintf( level.voteDisplayString,
-           sizeof( level.voteDisplayString ), "Begin sudden death" );
+   }else
+  	 if( !Q_stricmp( arg1, "sudden_death" ) || !Q_stricmp( arg1, "suddendeath" ) )
+  	    {
+  	      if(!g_suddenDeathVotePercent.integer)
+  	      {
+  	        trap_SendServerCommand( ent-g_entities, "print \"Sudden Death votes have been disabled\n\"" );
+  	        return;
+  	      }
+  	    else if( g_extremeSuddenDeath.integer )
+  	    		     {
+  	    		      trap_SendServerCommand( ent - g_entities, va( "print \"callvote: Extreme Sudden Death has already begun\n\"") );
+  	    		      return;
+  	    		     }
+  	    		     else if( G_TimeTilExtremeSuddenDeath() <= g_extremeSuddenDeathVoteDelay.integer * 1000 )
+  	    		     {
+  	    		      trap_SendServerCommand( ent - g_entities, va( "print \"callvote: Extreme Sudden Death is already immenent\n\"") );
+  	    		      return;
+  	    		     }
+  	      else if( g_suddenDeath.integer )
+  	      {
+  	       trap_SendServerCommand( ent - g_entities, va( "print \"callvote: Sudden Death has already begun\n\"") );
+  	       return;
+  	      }
+  	      else if( G_TimeTilSuddenDeath() <= g_suddenDeathVoteDelay.integer * 1000 )
+  	      {
+  	       trap_SendServerCommand( ent - g_entities, va( "print \"callvote: Sudden Death is already immenent\n\"") );
+  	       return;
+  	      }
+  	     else
+  	      {
+  	        level.votePassThreshold = g_suddenDeathVotePercent.integer;
+  	        Com_sprintf( level.voteString, sizeof( level.voteString ), "suddendeath" );
+  	        Com_sprintf( level.voteDisplayString,
+  	            sizeof( level.voteDisplayString ), "Begin sudden death" );
 
-       if( g_suddenDeathVoteDelay.integer )
-         Q_strcat( level.voteDisplayString, sizeof( level.voteDisplayString ), va( " in %d seconds", g_suddenDeathVoteDelay.integer ) );
+  	        if( g_suddenDeathVoteDelay.integer )
+  	          Q_strcat( level.voteDisplayString, sizeof( level.voteDisplayString ), va( " in %d seconds", g_suddenDeathVoteDelay.integer ) );
 
-     }
-   }
+  	      }
+  	    }
+	else if( !Q_stricmp( arg1, "extreme_sudden_death" ) || !Q_stricmp( arg1, "esd" ))
+	{
+		if(!g_extremeSuddenDeathVotePercent.integer)
+		     {
+		       trap_SendServerCommand( ent-g_entities, "print \"Extreme Sudden Death votes have been disabled\n\"" );
+		       return;
+		     }
+		     else if( g_extremeSuddenDeath.integer )
+		     {
+		      trap_SendServerCommand( ent - g_entities, va( "print \"callvote: Extreme Sudden Death has already begun\n\"") );
+		      return;
+		     }
+		     else if( G_TimeTilExtremeSuddenDeath() <= g_extremeSuddenDeathVoteDelay.integer * 1000 )
+		     {
+		      trap_SendServerCommand( ent - g_entities, va( "print \"callvote: Extreme Sudden Death is already immenent\n\"") );
+		      return;
+		     }
+
+		    else
+		     {
+		       level.votePassThreshold = g_extremeSuddenDeathVotePercent.integer;
+		       //Com_sprintf( level.voteString, sizeof( level.voteString ), "set g_extremeSuddenDeath 1" );
+		       Com_sprintf( level.voteString, sizeof( level.voteString ), "extremesuddendeath" );
+		       Com_sprintf( level.voteDisplayString,
+		           sizeof( level.voteDisplayString ), "Begin extreme sudden death" );
+
+		       if( g_suddenDeathVoteDelay.integer )
+		         Q_strcat( level.voteDisplayString, sizeof( level.voteDisplayString ), va( " in %d seconds", g_extremeSuddenDeathVoteDelay.integer ) );
+
+		     }
+
+	}
   else
   {
     trap_SendServerCommand( ent-g_entities, "print \"Invalid vote string\n\"" );
     trap_SendServerCommand( ent-g_entities, "print \"Valid vote commands are: "
-      "map, map_restart, draw, nextmap, kick, mute, unmute, poll, and sudden_death\n" );
+      "map, map_restart, draw, nextmap, kick, mute, unmute, poll, sudden_death and extreme_sudden_death (or esd)\n" );
     return;
   }
   
@@ -2758,6 +2799,16 @@ void Cmd_Destroy_f( gentity_t *ent )
       // Don't allow destruction of hovel with granger inside
       if( traceEnt->s.modelindex == BA_A_HOVEL && traceEnt->active )
         return;
+
+      //during extreme sudden death you can decon only reactor and overmind
+      if (g_extremeSuddenDeath.integer) {
+    	  int deconstructedStructureType = traceEnt->s.modelindex;
+    	  if ((deconstructedStructureType != BA_H_REACTOR) && (deconstructedStructureType != BA_A_OVERMIND)) {
+    		  trap_SendServerCommand( ent-g_entities,
+    		            "print \"During Extreme Sudden Death you can only decon OM and RC\n\"" );
+    		  return;
+    	  }
+      }
 
       // Don't allow destruction of buildables that cannot be rebuilt
       if(g_suddenDeath.integer && traceEnt->health > 0 &&
