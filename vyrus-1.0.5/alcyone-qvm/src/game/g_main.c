@@ -23,9 +23,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "g_local.h"
 
-#define QVM_NAME       "ACR Unlimited"
-#define QVM_VERSIONNUM      "1.05_FINAL"
-
 level_locals_t  level;
 
 typedef struct

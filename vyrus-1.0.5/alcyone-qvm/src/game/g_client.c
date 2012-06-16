@@ -1470,9 +1470,8 @@ void ClientBegin( int clientNum )
     }
   }
 
-  trap_SendServerCommand( client->ps.clientNum, va( "cp \"^2Welcome to\n^1A^5lcyon^1E\n^2v1.05_FINAL\"" ) );
-  //trap_SendServerCommand( client->ps.clientNum, va( "print \"^1News:\n\"" ) );
-  //trap_SendServerCommand( client->ps.clientNum, va( "print \"^6update 2/7/11\n^1* ^7instant /kill fixed\n^1* ^7devolve is timer based by default\n^1* ^7!Forcespec and !Denyweapon added\n^1* ^7jetpack now starts with fuel\n\"" ) ); 
+  trap_SendServerCommand( client->ps.clientNum, va( "cp \"^2Welcome to\n^1A^5lcyon^1E\n^2ver %s\"", QVM_VERSIONNUM ) );
+  trap_SendServerCommand( client->ps.clientNum, va( "print \"^6News:\n^2extreme sudden death available. just: /callvote esd\n\"" ) );
   //trap_SendServerCommand( client->ps.clientNum, va( "print \"^6update 3/17/11\n^1* ^7!l2 added\n^1* ^7mvp player scoring added\n\"" ) ); 
   //trap_SendServerCommand( client->ps.clientNum, va( "print \"^6update 4/25/11\n^1* ^7!forcespec changed to !forceteam\n^1* ^7jetpack bugs fixed\n^1* ^7mvp tweaked ( camping is now less )\n\"" ) );
   //trap_SendServerCommand( client->ps.clientNum, va( "print \"^6update 7/30/11\n^1* ^7mvp score updated\n^1* ^7goon and granger barbs eat luci balls\n^1* ^7!denyvote cmd added\n\"" ) );

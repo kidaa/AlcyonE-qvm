@@ -23,6 +23,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 // g_local.h -- local definitions for game module
 
+#define QVM_NAME       "AlcyonE"
+#define QVM_VERSIONNUM      "1.1.0"
+
 #include "../qcommon/q_shared.h"
 #include "bg_public.h"
 #include "g_public.h"
